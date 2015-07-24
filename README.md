@@ -8,7 +8,7 @@ First you need to create a free account on http://divae.meteor.com and follow th
 Once the device info is configure on the server you then need to modify the config.cfg to replace the "deviceid" and the "password" that was setted on the server.
 
 MAC OS:
-#python3 divae.py
+$python3 divae.py
 
 RASPBERRY PI:
 in peripheralcontrol.py replace "from rpictrl_dud" to "from rpictrl" if you want to control actual relays.
