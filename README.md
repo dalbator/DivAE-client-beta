@@ -1,18 +1,27 @@
 # DivAE-client-beta
-Clients that connect to DivAE server
+Raspberry PI Clients that connect to DivAE server
 
-This Python client use REST API to send peripherals status and receive commands to a from a DivAE server http://divae.meteor.com
+This Python client use REST API to send peripherals status and receive commands to a from a DivAE server [http://divae.meteor.com]
 
-##How to run:
-First you need to create a free account on http://divae.meteor.com and follow the instructions on how to setup a device.
-Once the device info is configure on the server you then need to modify the config.cfg to replace the "deviceid" and the "password" that was setted on the server.
+####How to setup:
+1. First you need to create a free account on [http://divae.meteor.com]
+2. follow the instructions on how to setup a device.
+3. Back to de client edit the config.cfg to replace the "deviceid" and the "password" that were setted on the server.
+4. Make sure that the "server" and "port" are set to: http://divae.meteor.com on port 80.
 
-MAC OS:
-
+#####Ho to run:
+#####MAC OSX:
+For demonstration purpose you can run the client on MAC OSX.
 $python3 divae.py
 
-RASPBERRY PI:
-in peripheralcontrol.py replace "from rpictrl_dud" to "from rpictrl" if you want to control actual relays.
-please note that "rpictrl.py" uses PIFACE Digital.
+#####Windows:
+Also for demonstration purpose you can run the client on Windows.
+You first need to install Python3 from Python's website
+[https://www.python.org/downloads/windows/]
 
+#####RASPBERRY PI:
+1. Copy the entire Python client files to a Folder in Raspberry PI
+2. in peripheralcontrol.py replace "from rpictrl_dud" to "from rpictrl" if you want to control actual relays.
+please note that "rpictrl.py" uses PIFACE Digital.
+3. run divae client
 $sudo python divae.py
