@@ -9,7 +9,7 @@ This Python client use REST API to send peripherals status and receive commands 
 3. Back to de client edit the config.cfg to replace the "deviceid" and the "password" that were setted on the server.
 4. Make sure that the "server" and "port" are set to: http://divae.meteor.com on port 80.
 
-#####Ho to run:
+####Ho to run:
 #####MAC OSX:
 For demonstration purpose you can run the client on MAC OSX.
 $python3 divae.py
