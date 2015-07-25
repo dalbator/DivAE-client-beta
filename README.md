@@ -20,7 +20,7 @@ You first need to install Python3 from Python's website
 [https://www.python.org/downloads/windows/]
 
 #####RASPBERRY PI:
-1. Copy the entire Python client files to a Folder in Raspberry PI
+1. Copy the entire Python client files to a Folder in Raspberry PI. Default folder name is "divea"
 2. in peripheralcontrol.py replace "from rpictrl_dud" to "from rpictrl" if you want to control actual relays.
 please note that "rpictrl.py" uses PIFACE Digital.
 3. run divae client
@@ -30,5 +30,5 @@ If you want to run DIVAE client to run everytime the device reboot
 1. sudo crontab -e
 2. @reboot sh /home/pi/divea/start.sh >/home/pi/logs/cronlog 2>&1
 3. Replace the "divea" folder to match your divea directory
-4. 
+4. Check the start.sh file tomake certain it is set to the proper folder.
 
