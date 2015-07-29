@@ -4,6 +4,7 @@ import json
 import pdb
 import threading
 import socket
+import datetime
 from threading import Thread
 
 from iseclogger import Logger
@@ -11,6 +12,10 @@ import urllib.request
 from peripherals import LocalPeripherals
 from schedules import ScheduleObject
 from schedules import Schedules
+
+class SharedInstances:
+    static_commandProcessor = None;
+    
 
 
 class CommandProcessor:
@@ -65,13 +70,74 @@ class CommandProcessor:
     log = None
     peripheralcontroller = None
     localConfig = None
+    peri = None;
 
     pendingreplies = []; # there are the statuses awaiting to be sent to the server
 
     def __init__(self, log, peripheralcontroller, localConfig):
+        SharedInstances.static_commandProcessor = self;
         self.log = log
         self.peripheralcontroller = peripheralcontroller
         self.localConfig = localConfig;
+        self.peri = LocalPeripherals(self.log);
+        self.peri.load();
+
+    def beginPostSwitchEvent(self,bcmchanel, newvalue):
+        self.log.write("beginPostSwitchEvent", "readytopost");
+        self.posterth = Thread(target = self.posterSwitchEventThread, args = (bcmchanel, newvalue,))
+        self.posterth.start()
+
+    FIELD_EVENT_PERIPHERAL_ID = "pid";
+    FIELD_EVENT_PERIPHERAL_TYPE = "ptype"
+    FIELD_EVENT_TIME = "etime"
+    FIELD_EVENT_PERIPHERAL_VALUE = "nvalue"
+
+    def posterSwitchEventThread(self,bcmchanel,newvalue):
+        lock = threading.RLock()
+        with lock:
+            peripheral = self.peri.findPeripheralByTypeAndGpio(LocalPeripherals.PERI_TYPE_SWITCH, bcmchanel);
+            if(peripheral != None):
+
+                payload = self.constructPostHeader();
+                date = str(datetime.datetime.now());
+                eventdata = { ''+self.FIELD_EVENT_PERIPHERAL_ID+'':'' + peripheral.devid
+                + '',''+self.FIELD_EVENT_PERIPHERAL_TYPE + '':'' + peripheral.ptype
+                + '',''+self.FIELD_EVENT_TIME + '':'' + date
+                + '',''+self.FIELD_EVENT_PERIPHERAL_VALUE+ '':'' + newvalue+''}
+                
+                payload["event"] = eventdata;
+
+                url = self.localConfig.serveraddress +":"+self.localConfig.serverport +"/diversityclient";
+                req = urllib.request.Request(url)
+                req.add_header('Content-Type', 'application/json')
+                self.log.write("POSTING the following: ", payload);
+                data = json.dumps(payload)
+                databytes = data.encode('utf-8')
+     
+                req.add_header('Content-Length', len(databytes))
+                
+                try:
+                    response = urllib.request.urlopen(req, databytes, self.TIMEOUT15);
+
+                    self.pendingreplies = [];
+                   
+                    data = response.read()
+                    self.processCommands(data);
+                    self.connected_time += 1;
+                except urllib.error.HTTPError as e:
+                    self.log.write("post", "HTTP Error: %d"% e.code)
+                    self.connection_issues += 1;
+                except urllib.error.URLError as e:
+                    self.log.write("post", "URL Error: %s"% e.args)
+                    self.connection_issues += 1;
+                except socket.timeout as e:
+                    self.log.write("post", "timeout")
+                    self.connection_issues += 1;
+            else:
+                self.log.write("beginPostSwitchEvent", "Peripheral not found");
+            #find the id of the peripheral
+            
+
 
     def beginPost(self,postdata):
         self.posterth = Thread(target = self.posterThread, args = (postdata, ))
@@ -91,16 +157,13 @@ class CommandProcessor:
         with lock:
             postdata = self.addPendingReplies(postdata);
             postdata = self.addPeripheralsStatus(postdata);
-           # self.log.write("posting the following: ", postdata);
-            
             url = self.localConfig.serveraddress +":"+self.localConfig.serverport +"/diversityclient";
-
             req = urllib.request.Request(url)
             req.add_header('Content-Type', 'application/json')
             self.log.write("POSTING the following: ", postdata);
             data = json.dumps(postdata)
             databytes = data.encode('utf-8')
- #           self.log.write("posting the following: ", databytes);
+ 
             req.add_header('Content-Length', len(databytes))
             
             try:
@@ -188,19 +251,19 @@ class CommandProcessor:
 
     def addPeripheralsStatus(self, postdata):
 
-        peri = LocalPeripherals(self.log)
-        peri.load();
+        #peri = LocalPeripherals(self.log)
+        #self.peri.load();
         #jval = peri.toJSON();
-        postdata["peripherals_stat"] = peri.getPeripheralsStatus(self.peripheralcontroller);
+        postdata["peripherals_stat"] = self.peri.getPeripheralsStatus(self.peripheralcontroller);
         
         return postdata;
 
   
     def cmdGetPeripherals(self, jcmd):
         self.log.write(self.MODULE_NAME, "***********get peripherals************")
-        peri = LocalPeripherals(self.log)
-        peri.load();
-        jval = peri.toJSON();
+        #peri = LocalPeripherals(self.log)
+        #peri.load();
+        jval = self.peri.toJSON();
         self.log.write(self.MODULE_NAME, "- Create response")
         retval = self.createResponseSetPeripherals(jcmd[self.ST_CMD_REF], jval);
         return retval
@@ -239,10 +302,10 @@ class CommandProcessor:
             self.log.write(self.MODULE_NAME, "minutes: " + str(minutes) + " deviceid: " + deviceid);
 
                  
-            peri = LocalPeripherals(self.log)
-            peri.load();
+            #peri = LocalPeripherals(self.log)
+            #peri.load();
  #           pdb.set_trace()
-            peripheralobject = peri.findPeripheral(deviceid)
+            peripheralobject = self.peri.findPeripheral(deviceid)
             if(peripheralobject != None):
                 # set timer
                 if(iminutes == 0):

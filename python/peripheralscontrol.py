@@ -15,10 +15,14 @@ from datetime import datetime, timedelta
 import pdb
 
 #remove _dud for production
-from rpictrl_dud import RPIController
+from rpictrl import RPIFaceDigitalController
+from rpictrl import getGPIOInput
+
 from schedules import Schedules
 from schedules import ScheduleObject
 from schedules import PeripheralSchedulesObject
+
+from commandprocessor import SharedInstances;
 
 
 class PeripheralTimerObject:
@@ -45,6 +49,16 @@ class PeripheralTimerObject:
 
     def getPeripheralSerialID(self):
         return self.peripheral.serialid;
+
+
+def switch_callback(bcmchanel):
+    # Send change to the server immediatelly
+    print("switch callback called")
+    print("change: " + str(bcmchanel));
+    value = getGPIOInput(bcmchanel);
+    print(value);
+    SharedInstances.static_commandProcessor.beginPostSwitchEvent(str(bcmchanel),value);
+    
     
 
 class PeripheralController:
@@ -67,8 +81,10 @@ class PeripheralController:
     
     def __init__(self):
         self.log = Logger("logs/controllerlog","txt", True)
-        self.rpiController = RPIController()
+        self.rpiController = RPIFaceDigitalController()
         self.tlock = threading.Lock()
+
+
 
 
     def join(self):
@@ -78,11 +94,11 @@ class PeripheralController:
     def threaded_function(self):
         self.localPeripherals = LocalPeripherals(self.log)
         self.localPeripherals.load()
+        self.localPeripherals.initSwitchPeripherals(switch_callback);
         self.setLoadSchedules()
         self.exitThread  = False
         self.log.write(self.MOD_NAME, "starting timer thread loop for peripheral controls")
-        while self.exitThread == False :
- 
+        while self.exitThread == False:
             self.checkSchedules()
             # timer override the schedules in case it is on
             self.checkTimers()
@@ -99,6 +115,12 @@ class PeripheralController:
             self.dbgcounter+= 1 
             time.sleep(5)
         self.log.write(self.MOD_NAME, "exiting thread loop")
+
+ #       self.testCallback();
+
+
+    def testCallback(self):
+        switch_callback(4);
 
     
     def getPeripheralStatus(self, port):

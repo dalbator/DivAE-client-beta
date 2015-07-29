@@ -5,10 +5,10 @@ import threading
 import os
 import sys
 import traceback
-from peripherals import LocalPeripherals
-from iseclogger import Logger
+#from peripherals import LocalPeripherals
+#from iseclogger import Logger
 from threading import Thread
-from peripherals import PeripheralObject
+#from peripherals import PeripheralObject
 import time
 import datetime
 import pdb
@@ -18,7 +18,11 @@ import time
 relay1 = False;
 relay2 = False;
 
-class RPIController:
+def addGPIOEvent(pgpio, fcallback):
+    print("fake: adding GPIO event for: "+ pgpio)
+    #GPIO.add_event_detect(4, GPIO.BOTH, callback=switchcallback, bouncetime=300);
+
+class RPIFaceDigitalController:
     
     def __init__(self):
         self.start()

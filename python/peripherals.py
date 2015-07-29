@@ -7,7 +7,14 @@ import sys
 import traceback
 sys.path.append( "../lib" )
 from iseclogger import Logger
+
+
 from rpiinfo import get_temperature
+
+#remove _dud for production
+from rpictrl import addGPIOEvent
+from rpictrl import getGPIOInput
+
 import pdb
 
 
@@ -17,6 +24,7 @@ class PeripheralObject:
     name = None
     description = None
     ptype = None
+    pgpio = None
     
 
 class LocalPeripherals:
@@ -29,6 +37,7 @@ class LocalPeripherals:
     CFG_PERI_DESCRIPTION = "description"
     CFG_PERI_TYPE="type"
     CFG_PERI_COUNT="count"
+    CFG_PERI_GPIO="gpio"
 
     ST_DEV_NAME = "device_name"
     ST_DEV_ID = "device_id"
@@ -61,23 +70,34 @@ class LocalPeripherals:
             pname = sectionperi[self.CFG_PERI_NAME]
             pdesc = sectionperi[self.CFG_PERI_DESCRIPTION]
             ptype = sectionperi[self.CFG_PERI_TYPE]
-            self.addDevice(pid, pids, pname,pdesc,ptype);
+            
+            pGPIO = -1
+            if(self.CFG_PERI_GPIO in sectionperi):
+                pGPIO = sectionperi[self.CFG_PERI_GPIO];
+             
+            self.addDevice(pid, pids, pname,pdesc,ptype,pGPIO);
         
-        
-        
- #       self.addDevice("00001","0","Blue Valve", "Relay 1 connected to blue valve","1")
-#        self.addDevice("00002","1","Red Valve", "Relay 2 connected to red valve","1")
+
 
     PERI_TYPE_RELAY = "1";
     PERI_TYPE_TEMPERATURE = "204";
+    PERI_TYPE_SWITCH = "202";
     STATUS = "status";
+
+    def initSwitchPeripherals(self,switchcallback):
+        # init peripherals that required it
+        for po in self._peripherals:
+            if(po.ptype == self.PERI_TYPE_SWITCH):
+                addGPIOEvent(po.pgpio, switchcallback);
+                 
+        
 
     def getPeripheralsStatus(self,peripheralcontroller):
         retval = [];
         for po in self._peripherals:
             if(po.ptype == self.PERI_TYPE_RELAY):
                 status = peripheralcontroller.getPeripheralStatus(po.serialid)
-                stat = {''+self.ST_PERIPHERAL_ID + '':'' + po.devid
+                stat = {'' + self.ST_PERIPHERAL_ID + '':'' + po.devid
                 + '',''+self.STATUS + '':'' + status+''}
                 retval.append(stat)
                 
@@ -86,6 +106,12 @@ class LocalPeripherals:
                 stat = {''+self.ST_PERIPHERAL_ID + '':'' + po.devid
                 + '',''+self.STATUS + '':'' + tempc+''}
                 retval.append(stat)
+            elif(po.ptype == self.PERI_TYPE_SWITCH):
+                onoff = getGPIOInput(po.pgpio)
+                stat = {''+self.ST_PERIPHERAL_ID + '':'' + po.devid
+                + '',''+self.STATUS + '':'' + onoff+''}
+                retval.append(stat)
+                
                 
                 
 
@@ -100,17 +126,27 @@ class LocalPeripherals:
                 break
         return retval
 
+    def findPeripheralByTypeAndGpio(self, ptype, pgpio):
+        retval = None
+        
+        for po in self._peripherals:
+            if (po.ptype == ptype) and (po.pgpio == pgpio):
+                retval = po
+                break
+        return retval
+
     def getPeripherals(self):
         return self._peripherals
                 
 
-    def addDevice(self, deviceid, serialid, name, description, ptype):
+    def addDevice(self, deviceid, serialid, name, description, ptype, pgpio):
         po = PeripheralObject()
         po.devid = deviceid
         po.serialid = serialid
         po.name = name
         po.description = description
         po.ptype = ptype
+        po.pgpio = pgpio;
         self._peripherals.append(po)
 
     def toJSON(self):
