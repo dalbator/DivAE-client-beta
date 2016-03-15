@@ -1,7 +1,7 @@
 # DivAE-client-beta
 Raspberry PI Clients that connect to DivAE server
 
-This Python client use REST API to send peripherals status and receive commands to a from a DivAE server http://divae.meteor.com
+This Python client use the REST API to send peripherals status and receive commands to and from actionKATA server http://actionKATA.com
 
 ####How to setup
 1. First you need to create a free account on http://divae.meteor.com
