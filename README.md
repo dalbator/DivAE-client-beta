@@ -1,4 +1,4 @@
-# DivAE-client-beta
+# ActionKata-client-beta
 Raspberry PI Clients that connect to ActionKata server
 
 This Python client use the REST API to send peripherals status and receive commands to and from actionKATA server http://actionKATA.com
