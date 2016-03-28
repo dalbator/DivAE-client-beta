@@ -17,6 +17,9 @@ import pdb
 #remove _dud for production
 from rpictrl import RPIFaceDigitalController
 from rpictrl import getGPIOInput
+#from rpictrl import setGPIOOutput
+from rpictrl import setGPIOHigh
+from rpictrl import setGPIOLow
 
 from schedules import Schedules
 from schedules import ScheduleObject
@@ -49,6 +52,15 @@ class PeripheralTimerObject:
 
     def getPeripheralSerialID(self):
         return self.peripheral.serialid;
+
+    def getPeripheralGPIO(self):
+        return self.peripheral.pgpio;
+
+    def useGPIO(self):
+        retval = False;
+        if(self.peripheral.pgpio != -1):
+            retval = True;
+        return retval;
 
 
 def switch_callback(bcmchanel):
@@ -161,7 +173,10 @@ class PeripheralController:
                     if(peripheralObject.serialid == pto.peripheral.serialid):
                         #delete
                         self.log.write(self.MOD_NAME, "turn off (deleting)");
-                        self.rpiController.turnOffOutput(int(portid))
+                        if(peripheralObject.pgpio != -1):
+                            setGPIOLow(self.rpiController.getPeripheralGPIO());
+                        else:
+                            self.rpiController.turnOffOutput(int(portid))
                         del self.p_timers[i]
             except:
                 self.log.write(self.MOD_NAME, "turn off peripheral. exception");
@@ -189,10 +204,21 @@ class PeripheralController:
                 portid = pto.getPeripheralSerialID();
                 if(pto.isExpired() == True):
                     #delete
-                    self.rpiController.turnOffOutput(int(portid))
+                    self.log.write(self.MOD_NAME, "Turning off (expired)");
+                    if(pto.useGPIO() == True):
+                        setGPIOLow(pto.getPeripheralGPIO());
+                    else:
+                        self.rpiController.turnOffOutput(int(portid))
                     del self.p_timers[i]
                 else:
-                    self.rpiController.turnOnOutput(int(portid))
+                    
+                    if(pto.useGPIO() == True):
+                        self.log.write(self.MOD_NAME, "Turning on GPIO ");
+                        self.log.write(self.MOD_NAME, pto.getPeripheralGPIO());
+                        setGPIOHigh(pto.getPeripheralGPIO());
+                    else:
+                        self.log.write(self.MOD_NAME, "Turning on (PIFACE) ");
+                        self.rpiController.turnOnOutput(int(portid))
                     #turn on
         self.tlock.release()
 

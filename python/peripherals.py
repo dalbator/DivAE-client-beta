@@ -63,8 +63,10 @@ class LocalPeripherals:
  #       sectionmain[self.CFG_PERI_COUNT]
         pericount = int(sectionmain[self.CFG_PERI_COUNT]);
         for x in range(0,pericount):
+            
             sectionkey = self.CFG_PERI_SECTION_PERI.format(x+1);
-            sectionperi = dict(peri_config.items(sectionkey))
+            sectionperi = dict(peri_config.items(sectionkey));
+ #           self.log.write("locperi",sectionperi);
             pid = sectionperi[self.CFG_PERI_ID]
             pids = sectionperi[self.CFG_PERI_ID_SERIAL]
             pname = sectionperi[self.CFG_PERI_NAME]

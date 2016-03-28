@@ -55,6 +55,37 @@ def getGPIOInput(pgpio):
 
     return str(onoff);
 
+def setGPIOOutput(pgpio, value):
+    global GPIO_SETTED;
+    global GOTGPIO;
+    if(GPIO_SETTED == False):
+        setupGPIO();
+    onoff = -1;
+    if(GOTGPIO == True):
+        GPIO.setup(int(pgpio), GPIO.OUT)
+        GPIO.output(pgpio, value)
+
+def setGPIOHigh(pgpio):
+    global GPIO_SETTED;
+    global GOTGPIO;
+    if(GPIO_SETTED == False):
+        setupGPIO();
+    if(GOTGPIO == True):
+        print("setting gpio HIGH");
+        print(pgpio)
+        print(int(pgpio));
+        GPIO.setup(int(pgpio), GPIO.OUT)
+        GPIO.output(int(pgpio), GPIO.HIGH);
+
+def setGPIOLow(pgpio):
+    global GPIO_SETTED;
+    global GOTGPIO;
+    if(GPIO_SETTED == False):
+        setupGPIO();
+    if(GOTGPIO == True):
+        GPIO.setup(int(pgpio), GPIO.OUT)
+        GPIO.output(int(pgpio), GPIO.LOW);
+
 class RPIFaceDigitalController:
     p = None;
     
@@ -76,13 +107,12 @@ class RPIFaceDigitalController:
             self.close(portid)
 
     def isOn(self, relay):
-
-        intval = self.p.relays[relay].value;
- 
         retval = False;
-        if(intval == 1):
-            retval = True;
-		
+        if(GOTPIFACE):
+            if(p != None):
+                intval = self.p.relays[relay].value;
+            if(intval == 1):
+                retval = True;		
         return retval;
 
     def open(self, relay):
