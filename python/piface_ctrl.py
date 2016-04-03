@@ -33,8 +33,8 @@ class RPIFaceDigitalController:
         if(GOTPIFACE):
             if(self.p != None):
                 intval = self.p.relays[relay].value;
-            if(intval == 1):
-                retval = True;		
+                if(intval == 1):
+                    retval = True;		
         return retval;
 
     def open(self, relay):

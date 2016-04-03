@@ -281,10 +281,10 @@ class PeripheralController:
             self.log.write(self.MOD_NAME, "Not action (B) for peipheral type:" + pto.getPeripheralType());
 
     def turnPeripheralOff(self, periobj):
-        if(pto.getPeripheralType() == LocalPeripherals.PERI_TYPE_OUT_RELAY):
+        if(periobj.ptype == LocalPeripherals.PERI_TYPE_OUT_RELAY):
             self.log.write(self.MOD_NAME, "Turning OFF GPIO ");
             setGPIOLow(periobj.pgpio);
-        elif(pto.getPeripheralType() == LocalPeripherals.PERI_TYPE_OUT_PIFACE_RELAY):
+        elif(periobj.ptype == LocalPeripherals.PERI_TYPE_OUT_PIFACE_RELAY):
             self.log.write(self.MOD_NAME, "Turning OFF (PIFACE relay) ");
             self.piFaceController.turnOffOutput(int(periobj.serialid))
         else:
