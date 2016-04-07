@@ -270,10 +270,11 @@ class PeripheralController:
         self.tlock.release()
 
     def turnPeripheralOn(self, periobj):
-        if(periobj.ptype == LocalPeripherals.PERI_TYPE_OUT_RELAY):
-            self.log.write(self.MOD_NAME, "Turning on GPIO ");
+        if(periobj.ptype == LocalPeripherals.PERI_TYPE_OUT_SAINTSMART_RELAY):
+            self.log.write(self.MOD_NAME, "Turning on GPIO " + periobj.pgpio);
             self.log.write(self.MOD_NAME, periobj.pgpio);
-            setGPIOHigh(pto.getPeripheralGPIO());
+            #Saintsmart relay turn on when gpio is low
+            setGPIOLow(periobj.pgpio);
         elif(periobj.ptype == LocalPeripherals.PERI_TYPE_OUT_PIFACE_RELAY):
             self.log.write(self.MOD_NAME, "Turning on (PIFACE relay) ");
             self.piFaceController.turnOnOutput(int(periobj.serialid))
@@ -281,9 +282,10 @@ class PeripheralController:
             self.log.write(self.MOD_NAME, "Not action (B) for peipheral type:" + pto.getPeripheralType());
 
     def turnPeripheralOff(self, periobj):
-        if(periobj.ptype == LocalPeripherals.PERI_TYPE_OUT_RELAY):
-            self.log.write(self.MOD_NAME, "Turning OFF GPIO ");
-            setGPIOLow(periobj.pgpio);
+        if(periobj.ptype == LocalPeripherals.PERI_TYPE_OUT_SAINTSMART_RELAY):
+            self.log.write(self.MOD_NAME, "Turning OFF GPIO "+ periobj.pgpio);
+            #Saintsmart relay turn off when gpio is high
+            setGPIOHigh(periobj.pgpio);
         elif(periobj.ptype == LocalPeripherals.PERI_TYPE_OUT_PIFACE_RELAY):
             self.log.write(self.MOD_NAME, "Turning OFF (PIFACE relay) ");
             self.piFaceController.turnOffOutput(int(periobj.serialid))

@@ -68,16 +68,22 @@ class DiversityMain:
         if(self.event.isSet()):
             self.logger.write("reporttimer","Not restarting")
         else:
-            global localConfig;
-            freq = int(localConfig.connectfreq)
-            self.timer = Timer(freq ,self.doReport,args=["WOW"])
+            self.timer = Timer(1,self.doReport,args=["WOW"])
             self.timer.start()
         
             
+    freqcounter = 0;
+    reportAtStartup = True;
 
     def doReport(self, message):
-        self.logger.write("main_thread","reporting")
-        self.postalive()
+        global localConfig;
+        freq = int(localConfig.connectfreq)
+        #self.logger.write("main_thread","reporting")
+        self.freqcounter += 1;
+        if(self.freqcounter >= freq or self.commandProcessor.wantPostNow() == True or self.reportAtStartup == True):
+            self.reportAtStartup = False;
+            self.freqcounter = 0;
+            self.postalive()
         self.startReportingTimer()
 
 

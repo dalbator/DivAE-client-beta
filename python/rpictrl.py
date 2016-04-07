@@ -2,6 +2,7 @@ import json
 import configparser
 import socket
 import threading
+from threading import Timer
 import os
 import sys
 import traceback
@@ -80,4 +81,16 @@ def setGPIOLow(pgpio):
         GPIO.setup(int(pgpio), GPIO.OUT)
         GPIO.output(int(pgpio), GPIO.LOW);
 
+
+class OSCommands:
+    @staticmethod
+    def rebootDevice():
+        reboottimer = Timer(10,OSCommands.doReboot,args=["WOW"])
+        reboottimer.start()
+   
+
+
+    @staticmethod
+    def doReboot(message):
+        os.system("sudo reboot");
 

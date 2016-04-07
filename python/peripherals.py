@@ -81,7 +81,7 @@ class LocalPeripherals:
         
 
     #Input peripherals
-    PERI_TYPE_OUT_RELAY = "1";
+    PERI_TYPE_OUT_SAINTSMART_RELAY = "1";
     PERI_TYPE_OUT_SPEAKER = "2";
     PERI_TYPE_OUT_BUZZER = "3";
     PERI_TYPE_OUT_CAMERA_CONTROL = "4";
@@ -119,7 +119,7 @@ class LocalPeripherals:
     def getPeripheralsStatus(self,peripheralcontroller):
         retval = [];
         for po in self._peripherals:
-            if(po.ptype == self.PERI_TYPE_OUT_RELAY):
+            if(po.ptype == self.PERI_TYPE_OUT_SAINTSMART_RELAY):
                 status = peripheralcontroller.getPeripheralStatus(po.serialid)
                 stat = {'' + self.ST_PERIPHERAL_ID + '':'' + po.devid
                 + '',''+self.STATUS + '':'' + status+''}
