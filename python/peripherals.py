@@ -5,6 +5,7 @@ import threading
 import os
 import sys
 import traceback
+from digtemp import read_dig_temp
 sys.path.append( "../lib" )
 from iseclogger import Logger
 
@@ -138,6 +139,12 @@ class LocalPeripherals:
                 onoff = getGPIOInput(po.pgpio)
                 stat = {''+self.ST_PERIPHERAL_ID + '':'' + po.devid
                 + '',''+self.STATUS + '':'' + onoff+''}
+                retval.append(stat)
+            elif(po.ptype == self.PERI_TYPE_IN_THERMOMETER):
+                #onoff = getGPIOInput(po.pgpio)
+                digtemp = read_dig_temp();
+                stat = {''+self.ST_PERIPHERAL_ID + '':'' + po.devid
+                + '',''+self.STATUS + '':'' + digtemp[0]+''}
                 retval.append(stat)
                 
                 
