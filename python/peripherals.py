@@ -142,9 +142,11 @@ class LocalPeripherals:
                 retval.append(stat)
             elif(po.ptype == self.PERI_TYPE_IN_THERMOMETER):
                 #onoff = getGPIOInput(po.pgpio)
-                digtemp = read_dig_temp();
+                self.log.write("Get Peripheral status","digitemp");
+                digtemp = read_dig_temp(int(po.serialid));
                 stat = {''+self.ST_PERIPHERAL_ID + '':'' + po.devid
                 + '',''+self.STATUS + '':'' + digtemp[0]+''}
+                self.log.write("Get Peripheral status", stat);
                 retval.append(stat)
                 
                 

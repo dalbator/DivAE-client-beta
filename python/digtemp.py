@@ -9,13 +9,15 @@ os.system('modprobe w1-therm')
 base_dir = '/sys/bus/w1/devices/'
 
  
-def read_dig_temp_raw():
+def read_dig_temp_raw(atIndex):
     device_folder = glob.glob(base_dir + '28*')
     line = [];
     if(len(device_folder) < 1):
         line.append("thermometer not found");
+    elif(atIndex > len(device_folder)-1):
+        line.append("thermometer not found at specified index");
     else:
-        device_folder = device_folder[0];
+        device_folder = device_folder[atIndex];
         device_file = device_folder + '/w1_slave'
         catdata = subprocess.Popen(['cat',device_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out,err = catdata.communicate()
@@ -23,14 +25,14 @@ def read_dig_temp_raw():
         line = out_decode.split('\n')
     return line
  
-def read_dig_temp():
+def read_dig_temp(atIndex):
     count = 5;
-    lines = read_dig_temp_raw()
+    lines = read_dig_temp_raw(atIndex)
     while lines[0].strip()[-3:] != 'YES':
         if(count == 0):
             break;
         time.sleep(0.2)
-        lines = read_dig_temp_raw()
+        lines = read_dig_temp_raw(atIndex)
         count-=1;
     if(len(lines)>1):
         equals_pos = lines[1].find('t=')
@@ -48,5 +50,6 @@ def read_dig_temp():
 
     
 #while True:
-#	print(read_temp())	
+#	print(read_dig_temp(0))
+#	print(read_dig_temp(1))	
 #	time.sleep(1)
