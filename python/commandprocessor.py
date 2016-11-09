@@ -7,11 +7,13 @@ import socket
 import datetime
 from threading import Thread
 
+
 from iseclogger import Logger
 import urllib.request
 from peripherals import LocalPeripherals
 from schedules import ScheduleObject
 from schedules import Schedules
+from rpictrl import OSCommands
 
 class SharedInstances:
     static_commandProcessor = None;
@@ -23,6 +25,7 @@ class CommandProcessor:
     ST_CMD_UPDATE_PERIPHERALS_STATUS = "20"
     ST_CMD_GET_PERIPHERALS = "30"
     ST_CMD_UPDATE_COMMAND_STATUS = "50"
+    ST_CMD_SET_REBOOT_DEVICE = "60" 
     
     ST_CMD_SET_PERIPHERALS = "200"
     ST_CMD_SET_TIMER = "230"
@@ -184,7 +187,15 @@ class CommandProcessor:
                 self.log.write("post", "timeout")
                 self.connection_issues += 1;
 
+    wantPost = False;
+
+    def wantPostNow(self):
+ #       self.log.write("wantpost", self.wantPost)
+        return self.wantPost;
+        
+
     def postAlive(self):
+        self.wantPost = False;
         result = self.constructPostHeader();
         result[self.ST_SUMMARY] = self.constructSummary();
 
@@ -237,8 +248,15 @@ class CommandProcessor:
         result = None;
         if(commandid == self.ST_CMD_GET_PERIPHERALS):
             result = self.cmdGetPeripherals(jcmd)
+            self.wantPost = True;
         elif(commandid == self.ST_CMD_SET_TIMER):
             result =    self.cmdSetTimer(jcmd)
+            self.wantPost = True;
+        elif(commandid == self.ST_CMD_SET_REBOOT_DEVICE):
+            self.log.write(self.MODULE_NAME, "Will reboot")
+ 
+            result = self.cmdReboot(jcmd);
+            self.wantPost = True;
         else:
             self.log.write(self.MODULE_NAME, "unknown command")
             #self.ST_CMD_SET_TIMER, statuscode, statusmessage
@@ -248,6 +266,14 @@ class CommandProcessor:
 
         return result
             
+
+    def cmdReboot(self,jcmd):
+        OSCommands.rebootDevice();
+        
+        response = { ''+self.ST_CMDC +'':'' + self.ST_CMD_UPDATE_COMMAND_STATUS 
+        + '',''+self.ST_CMD_REF + '':'' + jcmd[self.ST_CMD_REF]}
+                     
+        return response;
 
     def addPeripheralsStatus(self, postdata):
 
@@ -307,18 +333,23 @@ class CommandProcessor:
  #           pdb.set_trace()
             peripheralobject = self.peri.findPeripheral(deviceid)
             if(peripheralobject != None):
-                # set timer
-                if(iminutes == 0):
-                    self.peripheralcontroller.turnOffPeripheral(peripheralobject)
+                #make sure that this peripheral support this service
+                if(peripheralobject.ptype == LocalPeripherals.PERI_TYPE_OUT_SAINTSMART_RELAY or
+                   peripheralobject.ptype == LocalPeripherals.PERI_TYPE_OUT_PIFACE_RELAY):
+                    # set timer
+                    if(iminutes == 0):
+                        self.peripheralcontroller.turnOffPeripheral(peripheralobject)
+                    else:
+                        self.peripheralcontroller.addOneTimer(peripheralobject, iminutes)
+                    statuscode = self.STATUS_CODE_OK
+                    statusmessage = self.STATUS_MESSAGE_OK
                 else:
-                    self.peripheralcontroller.addOneTimer(peripheralobject, iminutes)
-                statuscode = self.STATUS_CODE_OK
-                statusmessage = self.STATUS_MESSAGE_OK                
+                    statuscode = self.STATUS_CODE_PERIPHERAL_NOT_FOUND
+                    statusmessage = self.STATUS_CODE_PERIPHERAL_NOT_FOUND_MESSAGE 
             else:
                 statuscode = self.STATUS_CODE_PERIPHERAL_NOT_FOUND
                 statusmessage = self.STATUS_CODE_PERIPHERAL_NOT_FOUND_MESSAGE    
-                
-                
+                   
         else:
             statuscode = self.STATUS_CODE_DATA_NOT_FOUND
             statusmessage = self.STATUS_CODE_DATA_NOT_FOUND_MESSAGE

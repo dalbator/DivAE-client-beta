@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 import pdb
 
 #remove _dud for production
-from rpictrl import RPIFaceDigitalController
+from piface_ctrl import RPIFaceDigitalController
 from rpictrl import getGPIOInput
 #from rpictrl import setGPIOOutput
 from rpictrl import setGPIOHigh
@@ -50,8 +50,14 @@ class PeripheralTimerObject:
             retval = True
         return retval
 
+    def getDeviceID(self):
+        return self.peripheral.devid;
+
     def getPeripheralSerialID(self):
         return self.peripheral.serialid;
+
+    def getPeripheralType(self):
+        return self.peripheral.ptype;
 
     def getPeripheralGPIO(self):
         return self.peripheral.pgpio;
@@ -79,7 +85,7 @@ class PeripheralController:
     log = None
     MOD_NAME = "PERCON"
     dbgcounter = 0;
-    rpiController = None
+    piFaceController = None
     
     peripheralThread = None
 
@@ -93,7 +99,7 @@ class PeripheralController:
     
     def __init__(self):
         self.log = Logger("logs/controllerlog","txt", True)
-        self.rpiController = RPIFaceDigitalController()
+        self.piFaceController = RPIFaceDigitalController()
         self.tlock = threading.Lock()
 
 
@@ -137,14 +143,14 @@ class PeripheralController:
     
     def getPeripheralStatus(self, port):
         retval = "off"
-        if(self.rpiController.getPortStatus(int(port))):
+        if(self.piFaceController.getPortStatus(int(port))):
             retval = "on"
         return retval;
     
     def getSummaryVerbose(self):
         text = "";
-        port1 = self.rpiController.getPortStatus(0);
-        port2 = self.rpiController.getPortStatus(1);
+        port1 = self.piFaceController.getPortStatus(0);
+        port2 = self.piFaceController.getPortStatus(1);
         if(port1):
             text = "Valve 1 is on.";
         else:
@@ -170,13 +176,14 @@ class PeripheralController:
 #                    self.log.write(self.MOD_NAME, "here");
                     self.log.write(self.MOD_NAME,type(pto.peripheral));
                     self.log.write(self.MOD_NAME,type(peripheralObject));
-                    if(peripheralObject.serialid == pto.peripheral.serialid):
+                    if(peripheralObject.devid == pto.peripheral.devid):
                         #delete
                         self.log.write(self.MOD_NAME, "turn off (deleting)");
-                        if(peripheralObject.pgpio != -1):
-                            setGPIOLow(self.rpiController.getPeripheralGPIO());
-                        else:
-                            self.rpiController.turnOffOutput(int(portid))
+                        self.turnPeripheralOff(pto.peripheral);
+ #                       if(pto.getPeripheralType() == LocalPeripherals.PERI_TYPE_OUT_RELAY):
+#                            setGPIOLow(self.pto.getPeripheralGPIO());
+#                        elif(pto.getPeripheralType() == LocalPeripherals.PERI_TYPE_OUT_PIFACE_RELAY):
+#                            self.piFaceController.turnOffOutput(int(portid))
                         del self.p_timers[i]
             except:
                 self.log.write(self.MOD_NAME, "turn off peripheral. exception");
@@ -205,20 +212,27 @@ class PeripheralController:
                 if(pto.isExpired() == True):
                     #delete
                     self.log.write(self.MOD_NAME, "Turning off (expired)");
-                    if(pto.useGPIO() == True):
-                        setGPIOLow(pto.getPeripheralGPIO());
-                    else:
-                        self.rpiController.turnOffOutput(int(portid))
+                    self.turnPeripheralOff(pto.peripheral);
+                   # if(pto.getPeripheralType() == LocalPeripherals.PERI_TYPE_OUT_RELAY):
+#                        setGPIOLow(pto.getPeripheralGPIO());
+#                    elif(pto.getPeripheralType() == LocalPeripherals.PERI_TYPE_OUT_PIFACE_RELAY):
+#                        self.piFaceController.turnOffOutput(int(portid))
+#                    else:
+#                        self.log.write(self.MOD_NAME, "Not action (A) for peipheral type:" + pto.getPeripheralType());
+                        
                     del self.p_timers[i]
                 else:
+                    self.turnPeripheralOn(pto.peripheral);
+                    #if(pto.getPeripheralType() == LocalPeripherals.PERI_TYPE_OUT_RELAY):
+#                        self.log.write(self.MOD_NAME, "Turning on GPIO ");
+#                        self.log.write(self.MOD_NAME, pto.getPeripheralGPIO());
+#                        setGPIOHigh(pto.getPeripheralGPIO());
+#                    elif(pto.getPeripheralType() == LocalPeripherals.PERI_TYPE_OUT_PIFACE_RELAY):
+#                        self.log.write(self.MOD_NAME, "Turning on (PIFACE) ");
+#                        self.piFaceController.turnOnOutput(int(portid))
+#                    else:
+#                        self.log.write(self.MOD_NAME, "Not action (B) for peipheral type:" + pto.getPeripheralType());
                     
-                    if(pto.useGPIO() == True):
-                        self.log.write(self.MOD_NAME, "Turning on GPIO ");
-                        self.log.write(self.MOD_NAME, pto.getPeripheralGPIO());
-                        setGPIOHigh(pto.getPeripheralGPIO());
-                    else:
-                        self.log.write(self.MOD_NAME, "Turning on (PIFACE) ");
-                        self.rpiController.turnOnOutput(int(portid))
                     #turn on
         self.tlock.release()
 
@@ -246,13 +260,37 @@ class PeripheralController:
                         self.log.write(self.MOD_NAME, "**** schedule to open peripheral ****")
                     self._schedulesmessagecounter = self._schedulesmessagecounter + 1
 
-                    self.log.write(self.MOD_NAME, "schedule turning valvle on" +  periobj.serialid)
-                    self.rpiController.turnOnOutput(int(periobj.serialid)) 
+                    self.log.write(self.MOD_NAME, "schedule turning valve on" +  periobj.serialid)
+                    self.turnPeripheralOn(periobj);
+#                    self.rpiController.turnOnOutput(int(periobj.serialid)) 
                 else:
-                    self.rpiController.turnOffOutput(int(periobj.serialid))
+                    self.turnPeripheralOff(periobj);
+#                    self.rpiController.turnOffOutput(int(periobj.serialid))
 
         self.tlock.release()
-                    
+
+    def turnPeripheralOn(self, periobj):
+        if(periobj.ptype == LocalPeripherals.PERI_TYPE_OUT_SAINTSMART_RELAY):
+            self.log.write(self.MOD_NAME, "Turning on GPIO " + periobj.pgpio);
+            self.log.write(self.MOD_NAME, periobj.pgpio);
+            #Saintsmart relay turn on when gpio is low
+            setGPIOLow(periobj.pgpio);
+        elif(periobj.ptype == LocalPeripherals.PERI_TYPE_OUT_PIFACE_RELAY):
+            self.log.write(self.MOD_NAME, "Turning on (PIFACE relay) ");
+            self.piFaceController.turnOnOutput(int(periobj.serialid))
+        else:
+            self.log.write(self.MOD_NAME, "Not action (B) for peipheral type:" + pto.getPeripheralType());
+
+    def turnPeripheralOff(self, periobj):
+        if(periobj.ptype == LocalPeripherals.PERI_TYPE_OUT_SAINTSMART_RELAY):
+            self.log.write(self.MOD_NAME, "Turning OFF GPIO "+ periobj.pgpio);
+            #Saintsmart relay turn off when gpio is high
+            setGPIOHigh(periobj.pgpio);
+        elif(periobj.ptype == LocalPeripherals.PERI_TYPE_OUT_PIFACE_RELAY):
+            self.log.write(self.MOD_NAME, "Turning OFF (PIFACE relay) ");
+            self.piFaceController.turnOffOutput(int(periobj.serialid))
+        else:
+            self.log.write(self.MOD_NAME, "Not action (A) for peipheral type:" + pto.getPeripheralType());
 
     def loadSchedules(self):
         self.tlock.acquire()
@@ -276,7 +314,7 @@ class PeripheralController:
             self.peripheralThread.start()
             
     def stopThread(self):
-        self.rpiController.stop();
+        self.piFaceController.stop();
         if(self.peripheralThread != None):
             with self.tlock:
                 self.exitThread  = True

@@ -5,6 +5,7 @@ import threading
 import os
 import sys
 import traceback
+from digtemp import read_dig_temp
 sys.path.append( "../lib" )
 from iseclogger import Logger
 
@@ -80,16 +81,38 @@ class LocalPeripherals:
             self.addDevice(pid, pids, pname,pdesc,ptype,pGPIO);
         
 
+    #Output peripherals
+    PERI_TYPE_OUT_SAINTSMART_RELAY = "1";
+    PERI_TYPE_OUT_SPEAKER = "2";
+    PERI_TYPE_OUT_BUZZER = "3";
+    PERI_TYPE_OUT_CAMERA_CONTROL = "4";
+    PERI_TYPE_OUT_GRADIAN = "5";
+    PERI_TYPE_OUT_SERVO = "6";
+    PERI_TYPE_OUT_PIFACE_RELAY = "7";
+    
+    #Input peripherals
+    PERI_TYPE_IN_RFI = "200";
+    PERI_TYPE_IN_VIDEO_CAMERA = "201";
+    PERI_TYPE_IN_BUTTON_SWITCH = "202";
+    PERI_TYPE_IN_HYDROMETER = "203";
+    PERI_TYPE_IN_THERMOMETER = "204";
+    PERI_TYPE_IN_PITHERMOMETER = "205";
+    PERI_TYPE_IN_ACCELEROMETER = "206";
+    PERI_TYPE_IN_POSITIONING_LOCATION ="207";
+    PERI_TYPE_IN_AMBIENT_LIGHT = "208";
+    PERI_TYPE_IN_MICROPHONE = "209";
+    PERI_TYPE_IN_INFRARED_CAMERA = "210";
+    PERI_TYPE_IN_MOTION_SENSOR = "211";
+    PERI_TYPE_IN_GEIGER_COUNTER = "212";
 
-    PERI_TYPE_RELAY = "1";
-    PERI_TYPE_TEMPERATURE = "204";
-    PERI_TYPE_SWITCH = "202";
+
+
     STATUS = "status";
 
     def initSwitchPeripherals(self,switchcallback):
         # init peripherals that required it
         for po in self._peripherals:
-            if(po.ptype == self.PERI_TYPE_SWITCH):
+            if(po.ptype == self.PERI_TYPE_IN_BUTTON_SWITCH):
                 addGPIOEvent(po.pgpio, switchcallback);
                  
         
@@ -97,21 +120,33 @@ class LocalPeripherals:
     def getPeripheralsStatus(self,peripheralcontroller):
         retval = [];
         for po in self._peripherals:
-            if(po.ptype == self.PERI_TYPE_RELAY):
+            if(po.ptype == self.PERI_TYPE_OUT_SAINTSMART_RELAY):
                 status = peripheralcontroller.getPeripheralStatus(po.serialid)
                 stat = {'' + self.ST_PERIPHERAL_ID + '':'' + po.devid
                 + '',''+self.STATUS + '':'' + status+''}
                 retval.append(stat)
-                
-            elif(po.ptype == self.PERI_TYPE_TEMPERATURE):
+            if(po.ptype == self.PERI_TYPE_OUT_PIFACE_RELAY):
+                status = peripheralcontroller.getPeripheralStatus(po.serialid)
+                stat = {'' + self.ST_PERIPHERAL_ID + '':'' + po.devid
+                + '',''+self.STATUS + '':'' + status+''}
+                retval.append(stat)                
+            elif(po.ptype == self.PERI_TYPE_IN_PITHERMOMETER):
                 tempc = get_temperature();
                 stat = {''+self.ST_PERIPHERAL_ID + '':'' + po.devid
                 + '',''+self.STATUS + '':'' + tempc+''}
                 retval.append(stat)
-            elif(po.ptype == self.PERI_TYPE_SWITCH):
+            elif(po.ptype == self.PERI_TYPE_IN_BUTTON_SWITCH):
                 onoff = getGPIOInput(po.pgpio)
                 stat = {''+self.ST_PERIPHERAL_ID + '':'' + po.devid
                 + '',''+self.STATUS + '':'' + onoff+''}
+                retval.append(stat)
+            elif(po.ptype == self.PERI_TYPE_IN_THERMOMETER):
+                #onoff = getGPIOInput(po.pgpio)
+                self.log.write("Get Peripheral status","digitemp");
+                digtemp = read_dig_temp(int(po.serialid));
+                stat = {''+self.ST_PERIPHERAL_ID + '':'' + po.devid
+                + '',''+self.STATUS + '':'' + digtemp[0]+''}
+                self.log.write("Get Peripheral status", stat);
                 retval.append(stat)
                 
                 
