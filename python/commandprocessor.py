@@ -333,18 +333,23 @@ class CommandProcessor:
  #           pdb.set_trace()
             peripheralobject = self.peri.findPeripheral(deviceid)
             if(peripheralobject != None):
-                # set timer
-                if(iminutes == 0):
-                    self.peripheralcontroller.turnOffPeripheral(peripheralobject)
+                #make sure that this peripheral support this service
+                if(peripheralobject.ptype == LocalPeripherals.PERI_TYPE_OUT_SAINTSMART_RELAY or
+                   peripheralobject.ptype == LocalPeripherals.PERI_TYPE_OUT_PIFACE_RELAY):
+                    # set timer
+                    if(iminutes == 0):
+                        self.peripheralcontroller.turnOffPeripheral(peripheralobject)
+                    else:
+                        self.peripheralcontroller.addOneTimer(peripheralobject, iminutes)
+                    statuscode = self.STATUS_CODE_OK
+                    statusmessage = self.STATUS_MESSAGE_OK
                 else:
-                    self.peripheralcontroller.addOneTimer(peripheralobject, iminutes)
-                statuscode = self.STATUS_CODE_OK
-                statusmessage = self.STATUS_MESSAGE_OK                
+                    statuscode = self.STATUS_CODE_PERIPHERAL_NOT_FOUND
+                    statusmessage = self.STATUS_CODE_PERIPHERAL_NOT_FOUND_MESSAGE 
             else:
                 statuscode = self.STATUS_CODE_PERIPHERAL_NOT_FOUND
                 statusmessage = self.STATUS_CODE_PERIPHERAL_NOT_FOUND_MESSAGE    
-                
-                
+                   
         else:
             statuscode = self.STATUS_CODE_DATA_NOT_FOUND
             statusmessage = self.STATUS_CODE_DATA_NOT_FOUND_MESSAGE

@@ -81,7 +81,7 @@ class LocalPeripherals:
             self.addDevice(pid, pids, pname,pdesc,ptype,pGPIO);
         
 
-    #Input peripherals
+    #Output peripherals
     PERI_TYPE_OUT_SAINTSMART_RELAY = "1";
     PERI_TYPE_OUT_SPEAKER = "2";
     PERI_TYPE_OUT_BUZZER = "3";
