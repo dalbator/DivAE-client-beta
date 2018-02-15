@@ -31,7 +31,7 @@ class LocalConfiguration:
     CONNECT_FREQ = "connectfreq"
 
     
-    filename = "cfg/config.cfg"
+    filename = "../cfg/config.cfg"
     
     
     def __init__(self, logger):

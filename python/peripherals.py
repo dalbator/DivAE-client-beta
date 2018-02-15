@@ -47,7 +47,7 @@ class LocalPeripherals:
     ST_DEV_TYPE = "device_type"
     ST_DEV_DESC = "device_desc"
 
-    filename = "cfg/peripherals.cfg";
+    filename = "../cfg/peripherals.cfg";
     
     log = None
     _peripherals = []
@@ -158,6 +158,7 @@ class LocalPeripherals:
         retval = None
         
         for po in self._peripherals:
+            #print("AAAAAAAA: " + po.devid);	
             if po.devid == deviceid:
                 retval = po
                 break

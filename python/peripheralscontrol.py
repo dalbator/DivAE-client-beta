@@ -13,6 +13,7 @@ from peripherals import LocalPeripherals
 import time
 from datetime import datetime, timedelta
 import pdb
+from takepicture import AKCamera
 
 #remove _dud for production
 from piface_ctrl import RPIFaceDigitalController
@@ -76,9 +77,14 @@ def switch_callback(bcmchanel):
     value = getGPIOInput(bcmchanel);
     print(value);
     SharedInstances.static_commandProcessor.beginPostSwitchEvent(str(bcmchanel),value);
-    
-    
 
+def picturetaken_callback(filename, peripheral_id):
+    print("take a picture callback")
+    print("filename: " + filename);
+    print("peripheral_id" + peripheral_id);
+    SharedInstances.static_commandProcessor.beginPostPictureTakenEvent(filename, peripheral_id);
+    
+    
 class PeripheralController:
     exitThread = False
     tlock = None
@@ -162,6 +168,12 @@ class PeripheralController:
             text += " Valve 2 is off.";
 
         return text;
+
+    def takeOnePicture(self, peripheral_id):
+        self.tlock.acquire()
+        tp = AKCamera();
+        tp.takeOnePicture(picturetaken_callback, peripheral_id);
+        self.tlock.release()
 
     def turnOffPeripheral(self, peripheralObject):
         # remove all timers associate to this peripheral

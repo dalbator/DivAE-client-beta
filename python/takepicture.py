@@ -10,7 +10,7 @@ def takePictureGlobal(picturetaken_callback, peripheral_id):
     try:
       camera.sharpness = 0
       camera.contrast = 0
-      camera.brightness = 70
+      camera.brightness = 50
       camera.saturation = 0
       camera.ISO = 0
       camera.video_stabilization = False
@@ -20,7 +20,7 @@ def takePictureGlobal(picturetaken_callback, peripheral_id):
       camera.awb_mode = 'auto'
       camera.image_effect = 'none'
       camera.color_effects = None
-      camera.rotation = 90
+      camera.rotation = 270
       camera.hflip = False
       camera.vflip = False
       camera.crop = (0.0, 0.0, 1.0, 1.0)

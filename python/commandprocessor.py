@@ -5,6 +5,8 @@ import pdb
 import threading
 import socket
 import datetime
+import os
+import base64
 from threading import Thread
 
 
@@ -26,7 +28,8 @@ class CommandProcessor:
     ST_CMD_GET_PERIPHERALS = "30"
     ST_CMD_UPDATE_COMMAND_STATUS = "50"
     ST_CMD_SET_REBOOT_DEVICE = "60" 
-    
+    ST_CMD_SET_TAKE_A_PICTURE = "70"    
+
     ST_CMD_SET_PERIPHERALS = "200"
     ST_CMD_SET_TIMER = "230"
 
@@ -59,6 +62,8 @@ class CommandProcessor:
     TIMER_MINUTES = "minutes"
     TIMER_DEVICE_ID = "peripheral_id"
 
+    PERIPHERAL_ID = "peripheral_id"
+
     PERIPHERALS = "peri"
     
     
@@ -85,15 +90,73 @@ class CommandProcessor:
         self.peri = LocalPeripherals(self.log);
         self.peri.load();
 
-    def beginPostSwitchEvent(self,bcmchanel, newvalue):
+    def beginPostPictureTakenEvent(self, picture_path, peripheral_id):
+        self.log.write("beginPostPictureTakenEvent", "readytopost");
+        self.postpicture = Thread(target = self.postPicureEventThread, args = (picture_path, peripheral_id))
+        self.postpicture.start()
+
+    def beginPostSwitchEvent(self, bcmchanel, newvalue):
         self.log.write("beginPostSwitchEvent", "readytopost");
-        self.posterth = Thread(target = self.posterSwitchEventThread, args = (bcmchanel, newvalue,))
+        self.posterth = Thread(target = self.posterSwitchEventThread, args = ( bcmchanel, newvalue,))
         self.posterth.start()
 
     FIELD_EVENT_PERIPHERAL_ID = "pid";
     FIELD_EVENT_PERIPHERAL_TYPE = "ptype"
     FIELD_EVENT_TIME = "etime"
     FIELD_EVENT_PERIPHERAL_VALUE = "nvalue"
+    FIELD_EVENT_PERIPHERAL_PICTURE = "pic"
+
+    def postPicureEventThread(self,picture_path, peripheral_id):
+        lock = threading.RLock()
+        with lock:
+          peripheral = self.peri.findPeripheral(peripheral_id);
+          self.log.write("postPictureEventThread", peripheral_id);
+          if(os.path.isfile(picture_path) and not (peripheral == None)):
+
+
+                image = open(picture_path, 'rb') #open binary file in read mode
+                image_read = image.read()
+                image_64_encode = base64.b64encode(image_read)
+                base64_string = image_64_encode.decode('utf-8')
+                image_read = None;
+                image.close();
+
+                payload = self.constructPostHeader();
+                date = str(datetime.datetime.now());
+                eventdata = { ''+self.FIELD_EVENT_PERIPHERAL_ID+'':'' + peripheral.devid
+                + '',''+self.FIELD_EVENT_PERIPHERAL_TYPE + '':'' + peripheral.ptype
+                + '',''+self.FIELD_EVENT_TIME + '':'' + date
+                + '',''+self.FIELD_EVENT_PERIPHERAL_PICTURE+ '':'' + base64_string +''}
+                
+                payload["event"] = eventdata;
+
+                url = self.localConfig.serveraddress +":"+self.localConfig.serverport +"/diversityclient";
+                req = urllib.request.Request(url)
+                req.add_header('Content-Type', 'application/json')
+                #self.log.write("POSTING the following: ", payload);
+                data = json.dumps(payload)
+                databytes = data.encode('utf-8')
+     
+                req.add_header('Content-Length', len(databytes))
+                
+                try:
+                    response = urllib.request.urlopen(req, databytes, self.TIMEOUT15);
+                    self.pendingreplies = [];
+                    data = response.read()
+                    self.processCommands(data);
+                    self.connected_time += 1;
+                except urllib.error.HTTPError as e:
+                    self.log.write("post", "HTTP Error: %d"% e.code)
+                    self.connection_issues += 1;
+                except urllib.error.URLError as e:
+                    self.log.write("post", "URL Error: %s"% e.args)
+                    self.connection_issues += 1;
+                except socket.timeout as e:
+                    self.log.write("post", "timeout")
+                    self.connection_issues += 1;
+          else:
+                self.log.write("postPicureEventThread", "File with picture not found");
+            #find the id of the peripheral
 
     def posterSwitchEventThread(self,bcmchanel,newvalue):
         lock = threading.RLock()
@@ -237,7 +300,7 @@ class CommandProcessor:
         return None;
         
     def processCommand(self, command):
- #       self.log.write("------ processCommand ------", command);
+        self.log.write("------ processCommand ------", command);
   
         jcmd = command;
         commandid = "-1"
@@ -254,9 +317,13 @@ class CommandProcessor:
             self.wantPost = True;
         elif(commandid == self.ST_CMD_SET_REBOOT_DEVICE):
             self.log.write(self.MODULE_NAME, "Will reboot")
- 
             result = self.cmdReboot(jcmd);
             self.wantPost = True;
+        elif(commandid == self.ST_CMD_SET_TAKE_A_PICTURE):
+            self.log.write(self.MODULE_NAME, "receive take a picture command")
+            result = self.cmdTakeAPicture(jcmd);
+            self.wantPost = True;
+
         else:
             self.log.write(self.MODULE_NAME, "unknown command")
             #self.ST_CMD_SET_TIMER, statuscode, statusmessage
@@ -266,6 +333,14 @@ class CommandProcessor:
 
         return result
             
+    def cmdTakeAPicture(self,jcmd):      
+        response = { ''+self.ST_CMDC +'':'' + self.ST_CMD_UPDATE_COMMAND_STATUS 
+        + '',''+self.ST_CMD_REF + '':'' + jcmd[self.ST_CMD_REF]}
+        
+        datasection = jcmd[self.ST_DATA]
+	#Async call
+        self.peripheralcontroller.takeOnePicture( datasection[self.PERIPHERAL_ID] );
+        return response;
 
     def cmdReboot(self,jcmd):
         OSCommands.rebootDevice();
