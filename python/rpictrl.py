@@ -43,6 +43,10 @@ def addGPIOEvent(pgpio, fcallback):
 
 
 def getGPIOInput(pgpio):
+    global GPIO_SETTED;
+    global GOTGPIO;
+    if(GPIO_SETTED == False):
+        setupGPIO();
     onoff = -1;
     if(GOTGPIO == True):
         GPIO.setup(int(pgpio), GPIO.IN, pull_up_down = GPIO.PUD_UP)
@@ -50,12 +54,59 @@ def getGPIOInput(pgpio):
 
     return str(onoff);
 
-def setGPIOOutput(pgpio, value):
+def getGPIOOutputStatus(pgpio):
+    #is gpioout on or off
     global GPIO_SETTED;
     global GOTGPIO;
     if(GPIO_SETTED == False):
         setupGPIO();
     onoff = -1;
+    #print("getGPIOOutputstatus");
+    #print(pgpio);
+    if(GOTGPIO == True):
+        try:
+            onoff = GPIO.input(int(pgpio));
+        except:
+            print("GPIO exception (it is setup?)");
+
+    return str(onoff);
+
+def getGPIOOutputStatusVerbose(pgpio):
+    #is gpioout on or off
+    global GPIO_SETTED;
+    global GOTGPIO;
+    if(GPIO_SETTED == False):
+        setupGPIO();
+    onoff = "-1";
+    #print("getGPIOOutputstatus");
+    #print(pgpio);
+    if(GOTGPIO == True):
+        try:
+            onoff = GPIO.input(int(pgpio));
+            if(onoff ==  0):
+                onoff = "True"
+            else:
+                onoff = "False"
+        except:
+            print("GPIO exception (it is setup?)");
+
+    return onoff;
+
+def initOutputGPIO(pgpio):
+    if(GPIO_SETTED == False):
+        setupGPIO();
+    if(GOTGPIO == True):
+        GPIO.setup(int(pgpio), GPIO.OUT)
+        #print("gpio is")
+        #print(pgpio)
+        # 1 is off
+        GPIO.output(int(pgpio), 1)
+
+def setGPIOOutput(pgpio, value):
+    global GPIO_SETTED;
+    global GOTGPIO;
+    if(GPIO_SETTED == False):
+        setupGPIO();
     if(GOTGPIO == True):
         GPIO.setup(int(pgpio), GPIO.OUT)
         GPIO.output(pgpio, value)

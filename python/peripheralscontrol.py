@@ -35,7 +35,7 @@ class PeripheralTimerObject:
     minutes = None
 
     peripheralSchedules = [] # array of PeriperalSchedulesObject
-    
+
     def __init__(self, peripheral, minutes):
         self.peripheral = peripheral
         self.minutes = minutes
@@ -46,7 +46,7 @@ class PeripheralTimerObject:
         now = datetime.now();
         duration = now - self.timestarted;
  #       pdb.set_trace()
-        
+
         if((duration.seconds/60) > self.minutes):
             retval = True
         return retval
@@ -83,8 +83,8 @@ def picturetaken_callback(filename, peripheral_id):
     print("filename: " + filename);
     print("peripheral_id" + peripheral_id);
     SharedInstances.static_commandProcessor.beginPostPictureTakenEvent(filename, peripheral_id);
-    
-    
+
+
 class PeripheralController:
     exitThread = False
     tlock = None
@@ -92,7 +92,7 @@ class PeripheralController:
     MOD_NAME = "PERCON"
     dbgcounter = 0;
     piFaceController = None
-    
+
     peripheralThread = None
 
     loadSchedule = False
@@ -102,7 +102,7 @@ class PeripheralController:
     p_timers = []
     p_pschedules = []  #PeripheralSchedulesObject
 
-    
+
     def __init__(self):
         self.log = Logger("logs/controllerlog","txt", True)
         self.piFaceController = RPIFaceDigitalController()
@@ -114,11 +114,12 @@ class PeripheralController:
     def join(self):
         if(self.peripheralThread != None):
             self.peripheralThread.join()
-        
+
     def threaded_function(self):
         self.localPeripherals = LocalPeripherals(self.log)
         self.localPeripherals.load()
         self.localPeripherals.initSwitchPeripherals(switch_callback);
+        self.localPeripherals.initializeGPIOOutputPeripherals()
         self.setLoadSchedules()
         self.exitThread  = False
         self.log.write(self.MOD_NAME, "starting timer thread loop for peripheral controls")
@@ -134,9 +135,9 @@ class PeripheralController:
                 else:
                     count = len(self.p_timers)
                     message = message + str(count) + " timer(s)"
-                    
+
                 self.log.write(self.MOD_NAME, "loop: "+ message)
-            self.dbgcounter+= 1 
+            self.dbgcounter+= 1
             time.sleep(5)
         self.log.write(self.MOD_NAME, "exiting thread loop")
 
@@ -146,13 +147,13 @@ class PeripheralController:
     def testCallback(self):
         switch_callback(4);
 
-    
-    def getPeripheralStatus(self, port):
+
+    def getPIFACEPeripheralStatus(self, port):
         retval = "off"
         if(self.piFaceController.getPortStatus(int(port))):
             retval = "on"
         return retval;
-    
+
     def getSummaryVerbose(self):
         text = "";
         port1 = self.piFaceController.getPortStatus(0);
@@ -199,7 +200,7 @@ class PeripheralController:
                         del self.p_timers[i]
             except:
                 self.log.write(self.MOD_NAME, "turn off peripheral. exception");
-                
+
         self.tlock.release()
 
 
@@ -231,7 +232,7 @@ class PeripheralController:
 #                        self.piFaceController.turnOffOutput(int(portid))
 #                    else:
 #                        self.log.write(self.MOD_NAME, "Not action (A) for peipheral type:" + pto.getPeripheralType());
-                        
+
                     del self.p_timers[i]
                 else:
                     self.turnPeripheralOn(pto.peripheral);
@@ -244,7 +245,7 @@ class PeripheralController:
 #                        self.piFaceController.turnOnOutput(int(portid))
 #                    else:
 #                        self.log.write(self.MOD_NAME, "Not action (B) for peipheral type:" + pto.getPeripheralType());
-                    
+
                     #turn on
         self.tlock.release()
 
@@ -255,9 +256,9 @@ class PeripheralController:
 
 
     _schedulesmessagecounter = 0
-    
+
     def checkSchedules(self):
-        
+
         if(self.loadSchedule == True):
             self.loadSchedule = False
             self.loadSchedules()
@@ -274,7 +275,7 @@ class PeripheralController:
 
                     self.log.write(self.MOD_NAME, "schedule turning valve on" +  periobj.serialid)
                     self.turnPeripheralOn(periobj);
-#                    self.rpiController.turnOnOutput(int(periobj.serialid)) 
+#                    self.rpiController.turnOnOutput(int(periobj.serialid))
                 else:
                     self.turnPeripheralOff(periobj);
 #                    self.rpiController.turnOffOutput(int(periobj.serialid))
@@ -291,7 +292,7 @@ class PeripheralController:
             self.log.write(self.MOD_NAME, "Turning on (PIFACE relay) ");
             self.piFaceController.turnOnOutput(int(periobj.serialid))
         else:
-            self.log.write(self.MOD_NAME, "Not action (B) for peipheral type:" + pto.getPeripheralType());
+            self.log.write(self.MOD_NAME, "Not action (B) for peipheral type:" + periobj.ptype);
 
     def turnPeripheralOff(self, periobj):
         if(periobj.ptype == LocalPeripherals.PERI_TYPE_OUT_SAINTSMART_RELAY):
@@ -302,7 +303,7 @@ class PeripheralController:
             self.log.write(self.MOD_NAME, "Turning OFF (PIFACE relay) ");
             self.piFaceController.turnOffOutput(int(periobj.serialid))
         else:
-            self.log.write(self.MOD_NAME, "Not action (A) for peipheral type:" + pto.getPeripheralType());
+            self.log.write(self.MOD_NAME, "Not action (A) for peipheral type:" + periobj.ptype);
 
     def loadSchedules(self):
         self.tlock.acquire()
@@ -313,25 +314,20 @@ class PeripheralController:
         for periObj in peripherals:
             schedules = sce.loadSchedulesForPeripheral(periObj.devid)
             self.p_pschedules.append(schedules)
-            
-            
-            
+
+
+
 
         self.tlock.release()
-            
+
 
     def startThread(self):
         if(self.peripheralThread == None):
             self.peripheralThread = Thread(target = self.threaded_function, args = [])
             self.peripheralThread.start()
-            
+
     def stopThread(self):
         self.piFaceController.stop();
         if(self.peripheralThread != None):
             with self.tlock:
                 self.exitThread  = True
-        
-     
-  
-
-

@@ -122,7 +122,7 @@ class CommandProcessor:
                 image.close();
 
                 payload = self.constructPostHeader();
-                date = str(datetime.datetime.now());
+                date = str(datetime.datetime.utcnow());
                 eventdata = { ''+self.FIELD_EVENT_PERIPHERAL_ID+'':'' + peripheral.devid
                 + '',''+self.FIELD_EVENT_PERIPHERAL_TYPE + '':'' + peripheral.ptype
                 + '',''+self.FIELD_EVENT_TIME + '':'' + date
@@ -240,15 +240,19 @@ class CommandProcessor:
                 data = response.read()
                 self.processCommands(data);
                 self.connected_time += 1;
+                self.connection_failed_count = 0;
             except urllib.error.HTTPError as e:
                 self.log.write("post", "HTTP Error: %d"% e.code)
                 self.connection_issues += 1;
+            self.connection_failed_count += 1;
             except urllib.error.URLError as e:
                 self.log.write("post", "URL Error: %s"% e.args)
                 self.connection_issues += 1;
+                self.connection_failed_count += 1;
             except socket.timeout as e:
                 self.log.write("post", "timeout")
                 self.connection_issues += 1;
+                self.connection_failed_count += 1;
 
     wantPost = False;
 
@@ -266,6 +270,8 @@ class CommandProcessor:
 
     connected_time = 0;
     connection_issues = 0;
+    connection_failed_count = 0;
+    CONNNECTION_FAILED_MAX = 5;
     def constructSummary(self):
         summary = "Connecion success: " +str(self.connected_time)+\
         " Failed: "+ str(self.connection_issues);
@@ -415,6 +421,8 @@ class CommandProcessor:
                     if(iminutes == 0):
                         self.peripheralcontroller.turnOffPeripheral(peripheralobject)
                     else:
+                        #turn off peripheral will remove all timers related to this peripheral to avoid duplicates
+                        self.peripheralcontroller.turnOffPeripheral(peripheralobject)
                         self.peripheralcontroller.addOneTimer(peripheralobject, iminutes)
                     statuscode = self.STATUS_CODE_OK
                     statusmessage = self.STATUS_MESSAGE_OK

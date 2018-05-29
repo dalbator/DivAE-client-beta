@@ -15,6 +15,8 @@ from rpiinfo import get_temperature
 #remove _dud for production
 from rpictrl import addGPIOEvent
 from rpictrl import getGPIOInput
+from rpictrl import getGPIOOutputStatusVerbose
+from rpictrl import initOutputGPIO
 
 import pdb
 
@@ -114,19 +116,27 @@ class LocalPeripherals:
         for po in self._peripherals:
             if(po.ptype == self.PERI_TYPE_IN_BUTTON_SWITCH):
                 addGPIOEvent(po.pgpio, switchcallback);
-                 
+
+    def initializeGPIOOutputPeripherals(self):
+        for po in self._peripherals:
+            if(po.ptype == self.PERI_TYPE_OUT_SAINTSMART_RELAY):
+                initOutputGPIO(po.pgpio);                         
         
 
     def getPeripheralsStatus(self,peripheralcontroller):
         retval = [];
         for po in self._peripherals:
             if(po.ptype == self.PERI_TYPE_OUT_SAINTSMART_RELAY):
-                status = peripheralcontroller.getPeripheralStatus(po.serialid)
-                stat = {'' + self.ST_PERIPHERAL_ID + '':'' + po.devid
-                + '',''+self.STATUS + '':'' + status+''}
+                #status = peripheralcontroller.getPeripheralStatus(po.serialid)
+                #stat = {'' + self.ST_PERIPHERAL_ID + '':'' + po.devid
+                #+ '',''+self.STATUS + '':'' + status+''}
+                #retval.append(stat)
+                onoff = getGPIOOutputStatusVerbose(po.pgpio)
+                stat = {''+self.ST_PERIPHERAL_ID + '':'' + po.devid
+                + '',''+self.STATUS + '':'' + onoff+''}
                 retval.append(stat)
             if(po.ptype == self.PERI_TYPE_OUT_PIFACE_RELAY):
-                status = peripheralcontroller.getPeripheralStatus(po.serialid)
+                status = peripheralcontroller.getPIFACEPeripheralStatus(po.serialid)
                 stat = {'' + self.ST_PERIPHERAL_ID + '':'' + po.devid
                 + '',''+self.STATUS + '':'' + status+''}
                 retval.append(stat)                

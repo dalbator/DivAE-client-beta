@@ -52,6 +52,6 @@ class AKCamera:
 
 
 
-tp = AKCamera();
-tp.takeOnePicture(None, None)
-tp = None;
+#tp = AKCamera();
+#tp.takeOnePicture(None, None)
+#tp = None;
